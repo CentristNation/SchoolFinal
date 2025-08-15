@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIP Code Analytics Dashboard</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    
+    <!-- Bootstrap CSS for professional styling -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .sidebar {
+            width: 480px;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            background: #495057;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .nav-tabs {
+            border-bottom: 1px solid #dee2e6;
+            background: #f8f9fa;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background: white;
+            border-bottom: 2px solid #667eea;
+            color: #667eea;
+        }
+        
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .tab-pane {
+            padding: 1.5rem;
+        }
+        
+        .controls-section {
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+        }
+        
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-custom:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        .btn-outline-custom {
+            border: 2px solid #667eea;
+            color: #667eea;
+            background: transparent;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-custom:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .summary-table {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .summary-table th {
+            background: #f8f9fa;
+            border-top: none;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.85rem;
+        }
+        
+        .summary-table td {
+            font-size: 0.85rem;
+            padding: 0.5rem;
+        }
+        
+        .table-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.75rem;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .table-header i {
+            margin-right: 0.5rem;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .selection-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+        
+        .zip-selected {
+            stroke: #ff6b35 !important;
+            stroke-width: 3 !important;
+            fill-opacity: 0.8 !important;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .legend {
+            background: white;
+            line-height: 1.5;
+            padding: 0.8rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.3rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 15px;
+            margin-right: 0.5rem;
+            border: 1px solid #ccc;
+        }
+
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .drawing-mode {
+            background-color: #ffeaa7 !important;
+            border-color: #fdcb6e !important;
+            color: #2d3436 !important;
+        }
+
+        .selected-zips-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+
+        .zip-item {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .zip-item:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .feedback-toast {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .feedback-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feedback-toast.error {
+            background: #dc3545;
+        }
+
+        .feedback-toast.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .form-select-sm {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+        }
+
+        .data-source-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .category-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-category {
+            text-align: center;
+            color: #6c757d;
+            padding: 1rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 50vh;
+            }
+            
+            .map-container {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Feedback Toast -->
+    <div id="feedbackToast" class="feedback-toast"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-map-marked-alt me-2"></i>
+                        ZIP Code Analytics Dashboard
+                    </h1>
+                </div>
+                <div class="col-auto d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center">
+                        <label class="data-source-label text-white mb-0 me-2">Data Source:</label>
+                        <select class="form-select form-select-sm" id="dataSourceSelect" style="width: 150px;">
+                            <option value="data.geojson">Main Dataset</option>
+                            <option value="dataMid.geojson">Mid Dataset</option>
+                        </select>
+                    </div>
+                    <span class="status-badge status-active" id="dataStatus">
+                        <i class="fas fa-circle me-1"></i>Ready
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Analysis Tools
+                </h5>
+            </div>
+
+            <!-- Sidebar Content with Tabs -->
+            <div class="sidebar-content">
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-tabs" id="analysisTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">
+                            <i class="fas fa-chart-pie me-1"></i>Summary
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">
+                            <i class="fas fa-list me-1"></i>Details
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="controls-tab" data-bs-toggle="tab" data-bs-target="#controls" type="button" role="tab">
+                            <i class="fas fa-tools me-1"></i>Controls
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="analysisTabContent">
+                    <!-- Summary Tab -->
+                    <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                        <!-- Key Metrics -->
+                        <div id="keyMetrics">
+                            <div class="metric-card">
+                                <div class="metric-label">Total ZIP Codes</div>
+                                <div class="metric-value" id="totalZips">-</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Selected Areas</div>
+                                <div class="metric-value" id="selectedZips">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Race Demographics Table -->
+                        <div class="category-section">
+                            <div class="table-header">
+                                <i class="fas fa-users"></i>
+                                Race Demographics
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm summary-table" id="raceTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Race/Ethnicity</th>
+                                            <th>Count</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="raceTableBody">
+                                        <tr>
+                                            <td colspan="2" class="empty-category">
+                                                Select ZIP codes to view race demographics
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Grade Enrollment Table -->
+                        <div class="category-section">
+                            <div class="table-header">
+                                <i class="fas fa-graduation-cap"></i>
+                                Grade Enrollment (Pre-K to Grade 12)
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm summary-table" id="gradeTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Grade Level</th>
+                                            <th>Enrollment</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="gradeTableBody">
+                                        <tr>
+                                            <td colspan="2" class="empty-category">
+                                                Select ZIP codes to view grade enrollment
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Demographics Table -->
+                        <div class="category-section">
+                            <div class="table-header">
+                                <i class="fas fa-chart-line"></i>
+                                Demographics
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm summary-table" id="demographicsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="demographicsTableBody">
+                                        <tr>
+                                            <td colspan="2" class="empty-category">
+                                                Select ZIP codes to view demographics
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- School Statistics Table -->
+                        <div class="category-section">
+                            <div class="table-header">
+                                <i class="fas fa-school"></i>
+                                School Statistics
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm summary-table" id="schoolTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="schoolTableBody">
+                                        <tr>
+                                            <td colspan="2" class="empty-category">
+                                                Select ZIP codes to view school statistics
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details Tab -->
+                    <div class="tab-pane fade" id="details" role="tabpanel">
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-map-marked me-2"></i>
+                            Selected ZIP Codes
+                        </h6>
+                        
+                        <div class="selected-zips-list" id="selectedZipsList">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-mouse-pointer me-2"></i>
+                                No ZIP codes selected
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold mb-3 mt-4">
+                            <i class="fas fa-table me-2"></i>
+                            Detailed Metrics
+                        </h6>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm summary-table" id="totalsTable">
+                                <thead>
+                                    <tr>
+                                        <th>ZIP Code</th>
+                                        <th>Key Metrics</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="totalsTableBody">
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted">
+                                            <i class="fas fa-mouse-pointer me-2"></i>
+                                            Select ZIP codes to view details
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Export Options -->
+                        <div class="mt-3">
+                            <h6 class="fw-bold mb-2">Export Data</h6>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-custom btn-sm" id="exportCSV" disabled>
+                                    <i class="fas fa-download me-2"></i>Export CSV
+                                </button>
+                                <button class="btn btn-outline-custom btn-sm" id="exportJSON" disabled>
+                                    <i class="fas fa-code me-2"></i>Export JSON
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controls Tab -->
+                    <div class="tab-pane fade" id="controls" role="tabpanel">
+                        <div class="controls-section">
+                            <h6 class="fw-bold mb-3">Selection Tools</h6>
+                            
+                            <div class="d-grid gap-2 mb-3">
+                                <button class="btn btn-custom" id="enableDrawing">
+                                    <i class="fas fa-draw-polygon me-2"></i>Enable Drawing Mode
+                                </button>
+                                <button class="btn btn-outline-custom" id="clearSelection">
+                                    <i class="fas fa-eraser me-2"></i>Clear Selection
+                                </button>
+                                <button class="btn btn-outline-custom" id="fitToSelection">
+                                    <i class="fas fa-expand me-2"></i>Zoom to Selection
+                                </button>
+                            </div>
+
+                            <div class="selection-info" id="selectionInfo" style="display: none;">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle me-2 text-info"></i>
+                                    <span id="selectionCount">0 ZIP codes selected</span>
+                                </div>
+                            </div>
+
+                            <!-- Debug info -->
+                            <div class="debug-info" id="debugInfo" style="display: none;">
+                                <strong>Debug:</strong> <span id="debugText"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Quick Filters</label>
+                            <select class="form-select mb-2" id="quickFilter">
+                                <option value="">Select a filter...</option>
+                                <option value="high_students">High Student Population (>2K)</option>
+                                <option value="low_students">Low Student Population (<500)</option>
+                                <option value="high_poverty">High Poverty (>20%)</option>
+                                <option value="high_bachelor">High Education (>30% Bachelor+)</option>
+                                <option value="urban_areas">Urban Areas</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Search ZIP Code</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="zipSearch" placeholder="Enter ZIP code...">
+                                <button class="btn btn-outline-custom" id="searchZip">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Leaflet Draw JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        class ZipCodeDashboard {
+            constructor() {
+                this.map = null;
+                this.geojsonLayer = null;
+                this.drawControl = null;
+                this.drawnItems = null;
+                this.selectedZips = new Set();
+                this.allData = null;
+                this.isDrawingEnabled = false;
+                this.layersByZip = new Map();
+                this.numericFields = [];
+                this.zipField = null;
+                this.totalStudentField = null;
+                this.studentBreaks = [];
+                this.colors = ['#ffffcc', '#c7e9b4', '#7fcdbb', '#41b6c4', '#2c7fb8', '#253494'];
+                this.legend = null;
+                
+                // Field mappings for different categories
+                this.raceFields = {};
+                this.gradeFields = {};
+                this.demographicsFields = {};
+                this.schoolFields = {};
+                
+                this.init();
+            }
+
+            showFeedback(message, type = 'success') {
+                const toast = document.getElementById('feedbackToast');
+                toast.textContent = message;
+                toast.className = `feedback-toast ${type}`;
+                
+                setTimeout(() => toast.classList.add('show'), 100);
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            }
+
+            debug(message) {
+                console.log('DEBUG:', message);
+                document.getElementById('debugText').textContent = message;
+                document.getElementById('debugInfo').style.display = 'block';
+                
+                // Show aggregation rules for current fields
+                if (message.includes('Loaded') && this.demographicsFields) {
+                    console.log('=== AGGREGATION RULES TEST ===');
+                    Object.entries(this.demographicsFields).forEach(([demo, fieldName]) => {
+                        if (fieldName) {
+                            const shouldAvg = this.shouldAverage(fieldName);
+                            console.log(`${demo} (${fieldName}): ${shouldAvg ? 'AVERAGED' : 'SUMMED'}`);
+                        }
+                    });
+                    console.log('=== END AGGREGATION RULES ===');
+                }
+                
+                setTimeout(() => {
+                    document.getElementById('debugInfo').style.display = 'none';
+                }, 5000);
+            }
+
+            async init() {
+                this.initMap();
+                this.setupEventListeners();
+                await this.loadGeoJSON();
+            }
+
+            initMap() {
+                this.map = L.map('map').setView([39.8283, -98.5795], 4);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(this.map);
+
+                this.drawnItems = new L.FeatureGroup();
+                this.map.addLayer(this.drawnItems);
+
+                this.setupDrawingEvents();
+            }
+
+            setupDrawingEvents() {
+                this.map.on(L.Draw.Event.CREATED, (e) => {
+                    console.log('Draw created event fired');
+                    const layer = e.layer;
+                    this.drawnItems.clearLayers();
+                    this.drawnItems.addLayer(layer);
+                    this.selectZipsInShape(layer);
+                    this.showFeedback('Selection area drawn!');
+                });
+
+                this.map.on(L.Draw.Event.DELETED, (e) => {
+                    console.log('Draw deleted event fired');
+                    this.clearSelection();
+                });
+
+                this.map.on(L.Draw.Event.DRAWSTART, (e) => {
+                    this.debug('Drawing started - draw your selection area');
+                });
+
+                this.map.on(L.Draw.Event.DRAWSTOP, (e) => {
+                    this.debug('Drawing completed');
+                });
+            }
+
+            async loadGeoJSON(filename = 'data.geojson') {
+                try {
+                    document.getElementById('dataStatus').innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading';
+                    document.getElementById('dataStatus').className = 'status-badge status-inactive';
+
+                    const response = await fetch(`./${filename}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    this.allData = await response.json();
+                    this.debug(`Loaded ${this.allData.features.length} ZIP codes from ${filename}`);
+                    
+                    // Clear previous data
+                    this.clearSelection();
+                    if (this.geojsonLayer) {
+                        this.map.removeLayer(this.geojsonLayer);
+                    }
+                    this.layersByZip.clear();
+                    
+                    // Reset field mappings
+                    this.raceFields = {};
+                    this.gradeFields = {};
+                    this.demographicsFields = {};
+                    this.schoolFields = {};
+                    this.numericFields = [];
+                    this.zipField = null;
+                    this.totalStudentField = null;
+                    this.studentBreaks = [];
+                    
+                    this.identifyFields();
+                    this.calculateStudentBreaks();
+                    this.addGeoJSONToMap();
+                    this.addLegend();
+                    
+                    if (this.geojsonLayer) {
+                        this.map.fitBounds(this.geojsonLayer.getBounds());
+                    }
+
+                    document.getElementById('dataStatus').innerHTML = '<i class="fas fa-circle me-1"></i>Ready';
+                    document.getElementById('dataStatus').className = 'status-badge status-active';
+                    document.getElementById('totalZips').textContent = this.allData.features.length.toLocaleString();
+
+                    this.showFeedback(`Successfully loaded ${this.allData.features.length} ZIP codes from ${filename}!`);
+
+                } catch (error) {
+                    console.error(`Error loading ${filename}:`, error);
+                    document.getElementById('dataStatus').innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Error';
+                    document.getElementById('dataStatus').className = 'status-badge status-inactive';
+                    
+                    if (filename === 'data.geojson') {
+                        this.generateSampleData();
+                        this.showFeedback('Using sample data - place data.geojson in same folder for real data', 'warning');
+                    } else {
+                        this.showFeedback(`Error loading ${filename}. Please ensure the file exists.`, 'error');
+                        // Fallback to main dataset
+                        document.getElementById('dataSourceSelect').value = 'data.geojson';
+                        await this.loadGeoJSON('data.geojson');
+                    }
+                }
+            }
+
+            generateSampleData() {
+                const sampleZips = ['10001', '10002', '10003', '90210', '90211', '77001', '77002', '30309', '30308', '60601'];
+                const features = [];
+                
+                sampleZips.forEach((zip, index) => {
+                    const lat = 40.7589 + (Math.random() - 0.5) * 20;
+                    const lng = -98.5795 + (Math.random() - 0.5) * 40;
+                    
+                    features.push({
+                        type: 'Feature',
+                        properties: {
+                            ZIP_CODE: zip,
+                            // Race fields
+                            asian: Math.floor(Math.random() * 1000) + 100,
+                            black: Math.floor(Math.random() * 2000) + 200,
+                            white: Math.floor(Math.random() * 5000) + 1000,
+                            hispanic: Math.floor(Math.random() * 1500) + 300,
+                            // Grade fields
+                            pre_k: Math.floor(Math.random() * 200) + 50,
+                            kindergarten: Math.floor(Math.random() * 250) + 60,
+                            grade_1: Math.floor(Math.random() * 250) + 60,
+                            grade_2: Math.floor(Math.random() * 250) + 60,
+                            grade_3: Math.floor(Math.random() * 250) + 60,
+                            grade_4: Math.floor(Math.random() * 250) + 60,
+                            grade_5: Math.floor(Math.random() * 250) + 60,
+                            grade_6: Math.floor(Math.random() * 300) + 70,
+                            grade_7: Math.floor(Math.random() * 300) + 70,
+                            grade_8: Math.floor(Math.random() * 300) + 70,
+                            grade_9: Math.floor(Math.random() * 350) + 80,
+                            grade_10: Math.floor(Math.random() * 350) + 80,
+                            grade_11: Math.floor(Math.random() * 350) + 80,
+                            grade_12: Math.floor(Math.random() * 350) + 80,
+                            // Demographics
+                            population: Math.floor(Math.random() * 50000) + 10000,
+                            poverty_pct: Math.random() * 30 + 5,
+                            median_income: Math.floor(Math.random() * 50000) + 30000,
+                            bachelor_atleast_pct: Math.random() * 40 + 15,
+                            unemployment_pct: Math.random() * 15 + 2,
+                            // School fields
+                            school_count: Math.floor(Math.random() * 10) + 2,
+                            student_ratio: Math.random() * 10 + 15,
+                            total_student: Math.floor(Math.random() * 3000) + 500,
+                            male: Math.floor(Math.random() * 1500) + 250,
+                            female: Math.floor(Math.random() * 1500) + 250
+                        },
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [[
+                                [lng - 0.5, lat - 0.5],
+                                [lng + 0.5, lat - 0.5],
+                                [lng + 0.5, lat + 0.5],
+                                [lng - 0.5, lat + 0.5],
+                                [lng - 0.5, lat - 0.5]
+                            ]]
+                        }
+                    });
+                });
+                
+                this.allData = { type: 'FeatureCollection', features };
+                this.identifyFields();
+                this.calculateStudentBreaks();
+                this.addGeoJSONToMap();
+                this.addLegend();
+                
+                if (this.geojsonLayer) {
+                    this.map.fitBounds(this.geojsonLayer.getBounds());
+                }
+                
+                document.getElementById('totalZips').textContent = this.allData.features.length.toLocaleString();
+            }
+
+            identifyFields() {
+                if (!this.allData.features.length) return;
+                
+                const props = this.allData.features[0].properties;
+                console.log('Available fields:', Object.keys(props));
+                
+                // Find ZIP field
+                const zipFields = ['ZIP', 'zip', 'ZIP_CODE', 'zip_code', 'ZCTA5CE10', 'ZCTA5CE20', 'zipcode', 'GEOID', 'NAME'];
+                for (const field of zipFields) {
+                    if (props.hasOwnProperty(field)) {
+                        this.zipField = field;
+                        break;
+                    }
+                }
+                
+                if (!this.zipField) {
+                    this.zipField = Object.keys(props)[0];
+                }
+                
+                // Find total student field for coloring
+                const studentFields = ['total_student', 'total_students', 'student_total', 'students_total'];
+                for (const field of studentFields) {
+                    if (props.hasOwnProperty(field)) {
+                        this.totalStudentField = field;
+                        break;
+                    }
+                }
+                
+                // If not found, look for any field with 'student' in name
+                if (!this.totalStudentField) {
+                    const keys = Object.keys(props);
+                    for (const key of keys) {
+                        if (key.toLowerCase().includes('student') && key.toLowerCase().includes('total') && typeof props[key] === 'number') {
+                            this.totalStudentField = key;
+                            break;
+                        }
+                    }
+                }
+                
+                // Categorize fields
+                this.categorizeFields(props);
+                
+                // Identify all numeric fields
+                this.numericFields = Object.keys(props).filter(key => {
+                    const value = props[key];
+                    return typeof value === 'number' && !isNaN(value) && key !== this.zipField;
+                });
+                
+                console.log('ZIP field:', this.zipField);
+                console.log('Total student field:', this.totalStudentField);
+                console.log('Race fields:', this.raceFields);
+                console.log('Grade fields:', this.gradeFields);
+                console.log('Demographics fields:', this.demographicsFields);
+                console.log('School fields:', this.schoolFields);
+            }
+
+            categorizeFields(props) {
+                const keys = Object.keys(props);
+                
+                // Race fields
+                const raceKeywords = {
+                    'asian': ['asian', 'asia'],
+                    'black': ['black', 'african', 'aa'],
+                    'white': ['white', 'caucasian'],
+                    'hispanic': ['hispanic', 'latino', 'latina']
+                };
+                
+                Object.entries(raceKeywords).forEach(([race, keywords]) => {
+                    for (const key of keys) {
+                        const lowerKey = key.toLowerCase();
+                        if (keywords.some(keyword => lowerKey.includes(keyword))) {
+                            this.raceFields[race] = key;
+                            break;
+                        }
+                    }
+                });
+                
+                // Grade fields (Pre-K to Grade 12)
+                const gradeKeywords = {
+                    'Pre-K': ['pre_k', 'prek', 'pre-k', 'preschool'],
+                    'Kindergarten': ['kindergarten', 'k', 'kinder'],
+                    'Grade 1': ['grade_1', 'grade1', 'first_grade', '1st_grade'],
+                    'Grade 2': ['grade_2', 'grade2', 'second_grade', '2nd_grade'],
+                    'Grade 3': ['grade_3', 'grade3', 'third_grade', '3rd_grade'],
+                    'Grade 4': ['grade_4', 'grade4', 'fourth_grade', '4th_grade'],
+                    'Grade 5': ['grade_5', 'grade5', 'fifth_grade', '5th_grade'],
+                    'Grade 6': ['grade_6', 'grade6', 'sixth_grade', '6th_grade'],
+                    'Grade 7': ['grade_7', 'grade7', 'seventh_grade', '7th_grade'],
+                    'Grade 8': ['grade_8', 'grade8', 'eighth_grade', '8th_grade'],
+                    'Grade 9': ['grade_9', 'grade9', 'ninth_grade', '9th_grade'],
+                    'Grade 10': ['grade_10', 'grade10', 'tenth_grade', '10th_grade'],
+                    'Grade 11': ['grade_11', 'grade11', 'eleventh_grade', '11th_grade'],
+                    'Grade 12': ['grade_12', 'grade12', 'twelfth_grade', '12th_grade']
+                };
+                
+                Object.entries(gradeKeywords).forEach(([grade, keywords]) => {
+                    for (const key of keys) {
+                        const lowerKey = key.toLowerCase();
+                        if (keywords.some(keyword => lowerKey.includes(keyword))) {
+                            this.gradeFields[grade] = key;
+                            break;
+                        }
+                    }
+                });
+                
+                // Demographics fields
+                const demoKeywords = {
+                    'Population': ['population', 'pop', 'total_pop'],
+                    'Poverty Pct': ['poverty_pct', 'poverty_rate', 'poverty_percent'],
+                    'Median Income': ['median_income', 'income_median', 'med_income'],
+                    'Bachelor Atleast Pct': ['bachelor_atleast_pct', 'bachelor_pct', 'college_pct', 'education_pct'],
+                    'Unemployment Pct': ['unemployment_pct', 'unemployment_rate', 'jobless_pct']
+                };
+                
+                Object.entries(demoKeywords).forEach(([demo, keywords]) => {
+                    for (const key of keys) {
+                        const lowerKey = key.toLowerCase();
+                        if (keywords.some(keyword => lowerKey.includes(keyword))) {
+                            this.demographicsFields[demo] = key;
+                            break;
+                        }
+                    }
+                });
+                
+                // School fields
+                const schoolKeywords = {
+                    'School Count': ['school_count', 'schools', 'num_schools'],
+                    'Student Ratio': ['student_ratio', 'ratio', 'teacher_student_ratio'],
+                    'Total Student': ['total_student', 'total_students', 'student_total'],
+                    'Male': ['male', 'boys', 'male_students'],
+                    'Female': ['female', 'girls', 'female_students']
+                };
+                
+                Object.entries(schoolKeywords).forEach(([school, keywords]) => {
+                    for (const key of keys) {
+                        const lowerKey = key.toLowerCase();
+                        if (keywords.some(keyword => lowerKey.includes(keyword))) {
+                            this.schoolFields[school] = key;
+                            break;
+                        }
+                    }
+                });
+            }
+
+            calculateStudentBreaks() {
+                if (!this.totalStudentField) return;
+                
+                const students = this.allData.features
+                    .map(f => f.properties[this.totalStudentField])
+                    .filter(val => typeof val === 'number' && !isNaN(val) && val > 0)
+                    .sort((a, b) => a - b);
+                
+                if (students.length === 0) return;
+                
+                // Create quantile breaks
+                this.studentBreaks = [];
+                for (let i = 0; i < this.colors.length; i++) {
+                    const quantile = i / (this.colors.length - 1);
+                    const index = Math.floor(quantile * (students.length - 1));
+                    this.studentBreaks.push(students[index]);
+                }
+            }
+
+            getStudentColor(studentCount) {
+                if (!this.totalStudentField || this.studentBreaks.length === 0) {
+                    return '#3388ff';
+                }
+                
+                for (let i = this.studentBreaks.length - 1; i >= 0; i--) {
+                    if (studentCount >= this.studentBreaks[i]) {
+                        return this.colors[i];
+                    }
+                }
+                return this.colors[0];
+            }
+
+            addLegend() {
+                // Remove existing legend if it exists
+                if (this.legend) {
+                    this.map.removeControl(this.legend);
+                }
+                
+                if (!this.totalStudentField || this.studentBreaks.length === 0) return;
+                
+                this.legend = L.control({position: 'bottomright'});
+                
+                this.legend.onAdd = () => {
+                    const div = L.DomUtil.create('div', 'legend');
+                    div.innerHTML = '<div class="legend-title">Total Students</div>';
+                    
+                    for (let i = 0; i < this.colors.length; i++) {
+                        const value = this.studentBreaks[i];
+                        const nextValue = this.studentBreaks[i + 1];
+                        
+                        let label = '';
+                        if (i === 0) {
+                            label = `< ${this.formatNumber(nextValue || value)}`;
+                        } else if (i === this.colors.length - 1) {
+                            label = `≥ ${this.formatNumber(value)}`;
+                        } else {
+                            label = `${this.formatNumber(value)} - ${this.formatNumber(nextValue)}`;
+                        }
+                        
+                        div.innerHTML += `
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: ${this.colors[i]}"></div>
+                                <span>${label}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    return div;
+                };
+                
+                this.legend.addTo(this.map);
+            }
+
+            formatNumber(num) {
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(1) + 'M';
+                } else if (num >= 1000) {
+                    return (num / 1000).toFixed(0) + 'K';
+                } else {
+                    return num.toLocaleString();
+                }
+            }
+
+            addGeoJSONToMap() {
+                this.geojsonLayer = L.geoJSON(this.allData, {
+                    style: (feature) => ({
+                        fillColor: this.getFeatureColor(feature),
+                        weight: 1,
+                        opacity: 0.8,
+                        color: '#666',
+                        fillOpacity: 0.6
+                    }),
+                    onEachFeature: (feature, layer) => {
+                        layer.feature = feature;
+                        const zipCode = this.getZipCode(feature);
+                        this.layersByZip.set(zipCode, layer);
+                        
+                        layer.on('click', (e) => {
+                            L.DomEvent.stopPropagation(e);
+                            this.toggleZipSelection(feature, layer);
+                        });
+
+                        layer.on('mouseover', function() {
+                            if (!this.options.isSelected) {
+                                this.setStyle({
+                                    fillOpacity: 0.8,
+                                    weight: 2,
+                                    color: '#4CAF50'
+                                });
+                            }
+                        });
+
+                        layer.on('mouseout', function() {
+                            if (!this.options.isSelected) {
+                                this.setStyle({
+                                    fillOpacity: 0.6,
+                                    weight: 1,
+                                    color: '#666'
+                                });
+                            }
+                        });
+
+                        layer.bindPopup(this.generatePopupContent(feature));
+                    }
+                }).addTo(this.map);
+            }
+
+            getFeatureColor(feature) {
+                const props = feature.properties;
+                
+                // Color by total students if available
+                if (this.totalStudentField && props[this.totalStudentField]) {
+                    return this.getStudentColor(props[this.totalStudentField]);
+                }
+                
+                return '#3388ff';
+            }
+
+            generatePopupContent(feature) {
+                const props = feature.properties;
+                const zipCode = this.getZipCode(feature);
+                
+                let content = `<div style="font-family: system-ui; max-width: 250px;">
+                    <h6 style="margin: 0 0 10px 0; color: #333; font-weight: bold;">ZIP Code: ${zipCode}</h6>`;
+                
+                // Show key metrics
+                const keyFields = [this.totalStudentField, 'population', 'median_income', 'poverty_pct'];
+                keyFields.forEach(field => {
+                    if (field && props[field] !== undefined && props[field] !== null) {
+                        const label = this.formatFieldName(field);
+                        const value = this.formatValue(field, props[field]);
+                        content += `<div style="margin: 4px 0; display: flex; justify-content: space-between;">
+                            <span style="color: #666;">${label}:</span>
+                            <strong style="color: #333;">${value}</strong>
+                        </div>`;
+                    }
+                });
+                
+                content += '</div>';
+                return content;
+            }
+
+            toggleZipSelection(feature, layer) {
+                const zipCode = this.getZipCode(feature);
+                
+                if (this.selectedZips.has(zipCode)) {
+                    this.selectedZips.delete(zipCode);
+                    layer.setStyle({
+                        fillColor: this.getFeatureColor(feature),
+                        fillOpacity: 0.6,
+                        color: '#666',
+                        weight: 1
+                    });
+                    layer.options.isSelected = false;
+                    this.showFeedback(`Deselected ZIP ${zipCode}`);
+                } else {
+                    this.selectedZips.add(zipCode);
+                    layer.setStyle({
+                        fillColor: '#ff6b35',
+                        fillOpacity: 0.8,
+                        color: '#ff6b35',
+                        weight: 3
+                    });
+                    layer.options.isSelected = true;
+                    this.showFeedback(`Selected ZIP ${zipCode}`);
+                }
+                
+                this.updateSummary();
+            }
+
+            // Enhanced polygon intersection selection
+            selectZipsInShape(shape) {
+                if (!this.geojsonLayer) return;
+                
+                let selectedCount = 0;
+                const shapeGeoJSON = shape.toGeoJSON();
+                
+                this.geojsonLayer.eachLayer((layer) => {
+                    const feature = layer.feature;
+                    if (!feature || !feature.geometry) return;
+                    
+                    try {
+                        // Check for any intersection between polygons
+                        if (this.polygonsIntersect(feature.geometry, shapeGeoJSON.geometry)) {
+                            const zipCode = this.getZipCode(feature);
+                            this.selectedZips.add(zipCode);
+                            layer.setStyle({
+                                fillColor: '#ff6b35',
+                                fillOpacity: 0.8,
+                                color: '#ff6b35',
+                                weight: 3
+                            });
+                            layer.options.isSelected = true;
+                            selectedCount++;
+                        }
+                    } catch (error) {
+                        console.error('Error checking polygon intersection:', error);
+                    }
+                });
+                
+                this.showFeedback(`Selected ${selectedCount} ZIP codes in drawn area`);
+                this.updateSummary();
+            }
+
+            // Improved polygon intersection detection
+            polygonsIntersect(poly1, poly2) {
+                // Simple bounding box check first
+                const bounds1 = this.getPolygonBounds(poly1);
+                const bounds2 = this.getPolygonBounds(poly2);
+                
+                if (!this.boundsIntersect(bounds1, bounds2)) {
+                    return false;
+                }
+                
+                // Check if any vertex of poly1 is inside poly2
+                const coords1 = poly1.type === 'Polygon' ? poly1.coordinates[0] : poly1.coordinates[0][0];
+                for (let i = 0; i < coords1.length - 1; i++) {
+                    if (this.pointInPolygon(coords1[i], poly2)) {
+                        return true;
+                    }
+                }
+                
+                // Check if any vertex of poly2 is inside poly1
+                const coords2 = poly2.type === 'Polygon' ? poly2.coordinates[0] : poly2.coordinates[0][0];
+                for (let i = 0; i < coords2.length - 1; i++) {
+                    if (this.pointInPolygon(coords2[i], poly1)) {
+                        return true;
+                    }
+                }
+                
+                // Check for edge intersections
+                return this.edgesIntersect(coords1, coords2);
+            }
+
+            getPolygonBounds(geometry) {
+                const coords = geometry.type === 'Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0];
+                let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+                
+                coords.forEach(coord => {
+                    minLng = Math.min(minLng, coord[0]);
+                    maxLng = Math.max(maxLng, coord[0]);
+                    minLat = Math.min(minLat, coord[1]);
+                    maxLat = Math.max(maxLat, coord[1]);
+                });
+                
+                return { minLng, maxLng, minLat, maxLat };
+            }
+
+            boundsIntersect(bounds1, bounds2) {
+                return !(bounds1.maxLng < bounds2.minLng || 
+                        bounds1.minLng > bounds2.maxLng || 
+                        bounds1.maxLat < bounds2.minLat || 
+                        bounds1.minLat > bounds2.maxLat);
+            }
+
+            pointInPolygon(point, polygon) {
+                const coords = polygon.type === 'Polygon' ? polygon.coordinates[0] : polygon.coordinates[0][0];
+                const x = point[0], y = point[1];
+                let inside = false;
+                
+                for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+                    const xi = coords[i][0], yi = coords[i][1];
+                    const xj = coords[j][0], yj = coords[j][1];
+                    
+                    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+                        inside = !inside;
+                    }
+                }
+                
+                return inside;
+            }
+
+            edgesIntersect(coords1, coords2) {
+                for (let i = 0; i < coords1.length - 1; i++) {
+                    for (let j = 0; j < coords2.length - 1; j++) {
+                        if (this.lineSegmentsIntersect(coords1[i], coords1[i + 1], coords2[j], coords2[j + 1])) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            lineSegmentsIntersect(p1, q1, p2, q2) {
+                const orientation = (p, q, r) => {
+                    const val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]);
+                    if (val === 0) return 0;
+                    return (val > 0) ? 1 : 2;
+                };
+                
+                const onSegment = (p, q, r) => {
+                    return q[0] <= Math.max(p[0], r[0]) && q[0] >= Math.min(p[0], r[0]) &&
+                           q[1] <= Math.max(p[1], r[1]) && q[1] >= Math.min(p[1], r[1]);
+                };
+                
+                const o1 = orientation(p1, q1, p2);
+                const o2 = orientation(p1, q1, q2);
+                const o3 = orientation(p2, q2, p1);
+                const o4 = orientation(p2, q2, q1);
+                
+                if (o1 !== o2 && o3 !== o4) return true;
+                
+                if (o1 === 0 && onSegment(p1, p2, q1)) return true;
+                if (o2 === 0 && onSegment(p1, q2, q1)) return true;
+                if (o3 === 0 && onSegment(p2, p1, q2)) return true;
+                if (o4 === 0 && onSegment(p2, q1, q2)) return true;
+                
+                return false;
+            }
+
+            getZipCode(feature) {
+                return String(feature.properties[this.zipField] || 'Unknown');
+            }
+
+            clearSelection() {
+                this.selectedZips.clear();
+                this.drawnItems.clearLayers();
+                
+                if (this.geojsonLayer) {
+                    this.geojsonLayer.eachLayer((layer) => {
+                        layer.setStyle({
+                            fillColor: this.getFeatureColor(layer.feature),
+                            fillOpacity: 0.6,
+                            color: '#666',
+                            weight: 1
+                        });
+                        layer.options.isSelected = false;
+                    });
+                }
+                
+                this.showFeedback('Selection cleared');
+                this.updateSummary();
+            }
+
+            updateSummary() {
+                const selectedCount = this.selectedZips.size;
+                
+                document.getElementById('selectedZips').textContent = selectedCount.toLocaleString();
+                document.getElementById('selectionCount').textContent = `${selectedCount} ZIP codes selected`;
+                
+                const selectionInfo = document.getElementById('selectionInfo');
+                selectionInfo.style.display = selectedCount > 0 ? 'block' : 'none';
+                
+                this.updateSelectedZipsList();
+                
+                if (selectedCount > 0) {
+                    const stats = this.calculateCategorizedStats();
+                    this.displayCategorizedTables(stats);
+                    this.displayDetailsTable(stats.details);
+                    
+                    document.getElementById('exportCSV').disabled = false;
+                    document.getElementById('exportJSON').disabled = false;
+                } else {
+                    this.clearAllTables();
+                    this.clearDetailsTable();
+                    
+                    document.getElementById('exportCSV').disabled = true;
+                    document.getElementById('exportJSON').disabled = true;
+                }
+            }
+
+            updateSelectedZipsList() {
+                const listContainer = document.getElementById('selectedZipsList');
+                
+                if (this.selectedZips.size === 0) {
+                    listContainer.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-mouse-pointer me-2"></i>
+                            No ZIP codes selected
+                        </div>
+                    `;
+                } else {
+                    const zipArray = Array.from(this.selectedZips).sort();
+                    listContainer.innerHTML = zipArray.map(zip => 
+                        `<div class="zip-item" data-zip="${zip}">${zip}</div>`
+                    ).join('');
+                    
+                    listContainer.querySelectorAll('.zip-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            const zip = item.dataset.zip;
+                            this.zoomToZip(zip);
+                        });
+                    });
+                }
+            }
+
+            zoomToZip(zipCode) {
+                const layer = this.layersByZip.get(zipCode);
+                if (layer) {
+                    this.map.fitBounds(layer.getBounds(), { maxZoom: 12 });
+                    
+                    const originalStyle = { ...layer.options };
+                    layer.setStyle({ color: '#FFD700', weight: 4 });
+                    setTimeout(() => {
+                        if (layer.options.isSelected) {
+                            layer.setStyle({ color: '#ff6b35', weight: 3 });
+                        } else {
+                            layer.setStyle(originalStyle);
+                        }
+                    }, 1000);
+                    
+                    this.showFeedback(`Zoomed to ZIP ${zipCode}`);
+                }
+            }
+
+            calculateCategorizedStats() {
+                const selectedFeatures = this.allData.features.filter(feature => 
+                    this.selectedZips.has(this.getZipCode(feature))
+                );
+                
+                if (selectedFeatures.length === 0) {
+                    return { race: {}, grades: {}, demographics: {}, school: {}, details: [] };
+                }
+                
+                const stats = {
+                    race: {},
+                    grades: {},
+                    demographics: {},
+                    school: {},
+                    details: []
+                };
+                
+                // Calculate race statistics
+                Object.entries(this.raceFields).forEach(([race, fieldName]) => {
+                    if (fieldName) {
+                        const values = this.getFieldValues(selectedFeatures, fieldName);
+                        if (values.length > 0) {
+                            stats.race[race] = values.reduce((sum, val) => sum + val, 0);
+                        }
+                    }
+                });
+                
+                // Calculate grade statistics
+                Object.entries(this.gradeFields).forEach(([grade, fieldName]) => {
+                    if (fieldName) {
+                        const values = this.getFieldValues(selectedFeatures, fieldName);
+                        if (values.length > 0) {
+                            stats.grades[grade] = values.reduce((sum, val) => sum + val, 0);
+                        }
+                    }
+                });
+                
+                // Calculate demographics statistics
+                Object.entries(this.demographicsFields).forEach(([demo, fieldName]) => {
+                    if (fieldName) {
+                        const values = this.getFieldValues(selectedFeatures, fieldName);
+                        if (values.length > 0) {
+                            // Apply aggregation rules
+                            const shouldAvg = this.shouldAverage(fieldName);
+                            if (shouldAvg) {
+                                stats.demographics[demo] = values.reduce((sum, val) => sum + val, 0) / values.length;
+                                console.log(`Demographics: ${demo} (${fieldName}) AVERAGED = ${stats.demographics[demo].toFixed(2)} [from values: ${values.join(', ')}]`);
+                            } else {
+                                stats.demographics[demo] = values.reduce((sum, val) => sum + val, 0);
+                                console.log(`Demographics: ${demo} (${fieldName}) SUMMED = ${stats.demographics[demo]} [from values: ${values.join(', ')}]`);
+                            }
+                        }
+                    }
+                });
+                
+                // Calculate school statistics
+                Object.entries(this.schoolFields).forEach(([school, fieldName]) => {
+                    if (fieldName) {
+                        const values = this.getFieldValues(selectedFeatures, fieldName);
+                        if (values.length > 0) {
+                            // Apply aggregation rules
+                            if (this.shouldAverage(fieldName)) {
+                                stats.school[school] = values.reduce((sum, val) => sum + val, 0) / values.length;
+                                console.log(`School: ${school} (${fieldName}) AVERAGED = ${stats.school[school].toFixed(2)}`);
+                            } else {
+                                stats.school[school] = values.reduce((sum, val) => sum + val, 0);
+                                console.log(`School: ${school} (${fieldName}) SUMMED = ${stats.school[school]}`);
+                            }
+                        }
+                    }
+                });
+                
+                // Prepare details for each ZIP
+                selectedFeatures.forEach(feature => {
+                    const zipCode = this.getZipCode(feature);
+                    const props = feature.properties;
+                    
+                    stats.details.push({
+                        zipCode: zipCode,
+                        properties: props
+                    });
+                });
+                
+                return stats;
+            }
+
+            getFieldValues(features, fieldName) {
+                return features
+                    .map(f => f.properties[fieldName])
+                    .filter(val => typeof val === 'number' && !isNaN(val));
+            }
+
+            shouldAverage(fieldName) {
+                const lowerName = fieldName.toLowerCase();
+                return lowerName.includes('ratio') || 
+                       lowerName.includes('_pct') || 
+                       lowerName.includes('median') ||
+                       lowerName.includes('percent') ||
+                       lowerName.includes('rate') ||
+                       (lowerName.includes('income') && lowerName.includes('median')) ||
+                       lowerName.includes('med_income') ||
+                       lowerName.includes('income_median');
+            }
+
+            displayCategorizedTables(stats) {
+                this.displayRaceTable(stats.race);
+                this.displayGradeTable(stats.grades);
+                this.displayDemographicsTable(stats.demographics);
+                this.displaySchoolTable(stats.school);
+            }
+
+            displayRaceTable(raceStats) {
+                const tbody = document.getElementById('raceTableBody');
+                tbody.innerHTML = '';
+                
+                if (Object.keys(raceStats).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" class="empty-category">Select ZIP codes to view race demographics</td></tr>';
+                    return;
+                }
+                
+                const raceOrder = ['asian', 'black', 'white', 'hispanic'];
+                raceOrder.forEach(race => {
+                    if (raceStats[race] !== undefined) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="fw-medium">${race.charAt(0).toUpperCase() + race.slice(1)}</td>
+                            <td class="text-end fw-bold">${raceStats[race].toLocaleString()}</td>
+                        `;
+                        tbody.appendChild(row);
+                    }
+                });
+            }
+
+            displayGradeTable(gradeStats) {
+                const tbody = document.getElementById('gradeTableBody');
+                tbody.innerHTML = '';
+                
+                if (Object.keys(gradeStats).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" class="empty-category">Select ZIP codes to view grade enrollment</td></tr>';
+                    return;
+                }
+                
+                const gradeOrder = ['Pre-K', 'Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
+                gradeOrder.forEach(grade => {
+                    if (gradeStats[grade] !== undefined) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="fw-medium">${grade}</td>
+                            <td class="text-end fw-bold">${gradeStats[grade].toLocaleString()}</td>
+                        `;
+                        tbody.appendChild(row);
+                    }
+                });
+            }
+
+            displayDemographicsTable(demoStats) {
+                const tbody = document.getElementById('demographicsTableBody');
+                tbody.innerHTML = '';
+                
+                if (Object.keys(demoStats).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" class="empty-category">Select ZIP codes to view demographics</td></tr>';
+                    return;
+                }
+                
+                Object.entries(demoStats).forEach(([key, value]) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="fw-medium">${key}</td>
+                        <td class="text-end fw-bold">${this.formatValue(this.demographicsFields[key], value)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            displaySchoolTable(schoolStats) {
+                const tbody = document.getElementById('schoolTableBody');
+                tbody.innerHTML = '';
+                
+                if (Object.keys(schoolStats).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" class="empty-category">Select ZIP codes to view school statistics</td></tr>';
+                    return;
+                }
+                
+                Object.entries(schoolStats).forEach(([key, value]) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="fw-medium">${key}</td>
+                        <td class="text-end fw-bold">${this.formatValue(this.schoolFields[key], value)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            displayDetailsTable(details) {
+                const tbody = document.getElementById('totalsTableBody');
+                tbody.innerHTML = '';
+                
+                if (details.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="2" class="text-center text-muted">
+                                <i class="fas fa-mouse-pointer me-2"></i>
+                                Select ZIP codes to view details
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                details.forEach(detail => {
+                    const row = document.createElement('tr');
+                    
+                    const zipCell = document.createElement('td');
+                    zipCell.textContent = detail.zipCode;
+                    zipCell.className = 'fw-bold';
+                    zipCell.style.cursor = 'pointer';
+                    zipCell.addEventListener('click', () => this.zoomToZip(detail.zipCode));
+                    
+                    const metricsCell = document.createElement('td');
+                    const keyMetrics = [];
+                    
+                    // Show key metrics
+                    if (this.totalStudentField && detail.properties[this.totalStudentField] !== undefined) {
+                        keyMetrics.push(`Students: ${detail.properties[this.totalStudentField].toLocaleString()}`);
+                    }
+                    if (detail.properties.population !== undefined) {
+                        keyMetrics.push(`Pop: ${detail.properties.population.toLocaleString()}`);
+                    }
+                    if (this.demographicsFields['Median Income'] && detail.properties[this.demographicsFields['Median Income']] !== undefined) {
+                        keyMetrics.push(`Income: $${detail.properties[this.demographicsFields['Median Income']].toLocaleString()}`);
+                    }
+                    
+                    metricsCell.innerHTML = keyMetrics.join('<br>');
+                    metricsCell.className = 'small';
+                    
+                    row.appendChild(zipCell);
+                    row.appendChild(metricsCell);
+                    tbody.appendChild(row);
+                });
+            }
+
+            clearAllTables() {
+                document.getElementById('raceTableBody').innerHTML = '<tr><td colspan="2" class="empty-category">Select ZIP codes to view race demographics</td></tr>';
+                document.getElementById('gradeTableBody').innerHTML = '<tr><td colspan="2" class="empty-category">Select ZIP codes to view grade enrollment</td></tr>';
+                document.getElementById('demographicsTableBody').innerHTML = '<tr><td colspan="2" class="empty-category">Select ZIP codes to view demographics</td></tr>';
+                document.getElementById('schoolTableBody').innerHTML = '<tr><td colspan="2" class="empty-category">Select ZIP codes to view school statistics</td></tr>';
+            }
+
+            clearDetailsTable() {
+                const tbody = document.getElementById('totalsTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="text-center text-muted">
+                            <i class="fas fa-mouse-pointer me-2"></i>
+                            Select ZIP codes to view details
+                        </td>
+                    </tr>
+                `;
+            }
+
+            formatFieldName(field) {
+                return field
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase());
+            }
+
+            formatValue(field, value) {
+                if (!field) return value.toLocaleString();
+                
+                const fieldLower = field.toLowerCase();
+                
+                if (fieldLower.includes('percent') || fieldLower.includes('_pct') || fieldLower.includes('rate')) {
+                    return `${value.toFixed(1)}%`;
+                } else if (fieldLower.includes('income') || fieldLower.includes('wage')) {
+                    return `$${value.toLocaleString()}`;
+                } else if (fieldLower.includes('ratio')) {
+                    return value.toFixed(1);
+                } else if (Number.isInteger(value)) {
+                    return value.toLocaleString();
+                } else {
+                    return value.toFixed(1);
+                }
+            }
+
+            setupEventListeners() {
+                // Data source switcher
+                document.getElementById('dataSourceSelect').addEventListener('change', async (e) => {
+                    const selectedFile = e.target.value;
+                    this.showFeedback(`Switching to ${selectedFile}...`);
+                    await this.loadGeoJSON(selectedFile);
+                });
+
+                document.getElementById('enableDrawing').addEventListener('click', () => {
+                    this.toggleDrawingMode();
+                });
+
+                document.getElementById('clearSelection').addEventListener('click', () => {
+                    this.clearSelection();
+                });
+
+                document.getElementById('fitToSelection').addEventListener('click', () => {
+                    this.fitToSelection();
+                });
+
+                document.getElementById('exportCSV').addEventListener('click', () => {
+                    this.exportData('csv');
+                });
+
+                document.getElementById('exportJSON').addEventListener('click', () => {
+                    this.exportData('json');
+                });
+
+                document.getElementById('quickFilter').addEventListener('change', (e) => {
+                    this.applyQuickFilter(e.target.value);
+                });
+
+                document.getElementById('searchZip').addEventListener('click', () => {
+                    this.searchZip();
+                });
+
+                document.getElementById('zipSearch').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.searchZip();
+                    }
+                });
+            }
+
+            toggleDrawingMode() {
+                const btn = document.getElementById('enableDrawing');
+                
+                if (!this.isDrawingEnabled) {
+                    this.drawControl = new L.Control.Draw({
+                        position: 'topright',
+                        draw: {
+                            polygon: {
+                                shapeOptions: {
+                                    color: '#ff6b35',
+                                    fillOpacity: 0.3
+                                }
+                            },
+                            rectangle: {
+                                shapeOptions: {
+                                    color: '#ff6b35',
+                                    fillOpacity: 0.3
+                                }
+                            },
+                            circle: false,
+                            marker: false,
+                            polyline: false,
+                            circlemarker: false
+                        },
+                        edit: {
+                            featureGroup: this.drawnItems,
+                            remove: true
+                        }
+                    });
+                    
+                    this.map.addControl(this.drawControl);
+                    this.isDrawingEnabled = true;
+                    
+                    btn.innerHTML = '<i class="fas fa-times me-2"></i>Disable Drawing';
+                    btn.classList.add('drawing-mode');
+                    
+                    this.showFeedback('Drawing mode enabled - use tools in top-right corner');
+                } else {
+                    if (this.drawControl) {
+                        this.map.removeControl(this.drawControl);
+                        this.drawControl = null;
+                    }
+                    this.isDrawingEnabled = false;
+                    
+                    btn.innerHTML = '<i class="fas fa-draw-polygon me-2"></i>Enable Drawing Mode';
+                    btn.classList.remove('drawing-mode');
+                    
+                    this.showFeedback('Drawing mode disabled');
+                }
+            }
+
+            fitToSelection() {
+                if (this.selectedZips.size === 0) {
+                    this.showFeedback('No ZIP codes selected to zoom to', 'warning');
+                    return;
+                }
+                
+                const selectedLayers = Array.from(this.selectedZips)
+                    .map(zip => this.layersByZip.get(zip))
+                    .filter(layer => layer);
+                
+                if (selectedLayers.length > 0) {
+                    const group = new L.featureGroup(selectedLayers);
+                    this.map.fitBounds(group.getBounds());
+                    this.showFeedback('Zoomed to selected ZIP codes');
+                }
+            }
+
+            applyQuickFilter(filterType) {
+                if (!filterType) return;
+                
+                this.clearSelection();
+                let selectedCount = 0;
+                
+                this.geojsonLayer.eachLayer((layer) => {
+                    const feature = layer.feature;
+                    const props = feature.properties;
+                    let shouldSelect = false;
+                    
+                    switch(filterType) {
+                        case 'high_students':
+                            shouldSelect = (props[this.totalStudentField] || 0) > 2000;
+                            break;
+                        case 'low_students':
+                            shouldSelect = (props[this.totalStudentField] || 0) < 500;
+                            break;
+                        case 'high_poverty':
+                            const povertyField = this.demographicsFields['Poverty Pct'];
+                            shouldSelect = povertyField && (props[povertyField] || 0) > 20;
+                            break;
+                        case 'high_bachelor':
+                            const bachelorField = this.demographicsFields['Bachelor Atleast Pct'];
+                            shouldSelect = bachelorField && (props[bachelorField] || 0) > 30;
+                            break;
+                        case 'urban_areas':
+                            shouldSelect = (props.urban_percent || props.urban_pct || 0) > 70;
+                            break;
+                    }
+                    
+                    if (shouldSelect) {
+                        const zipCode = this.getZipCode(feature);
+                        this.selectedZips.add(zipCode);
+                        layer.setStyle({
+                            fillColor: '#ff6b35',
+                            fillOpacity: 0.8,
+                            color: '#ff6b35',
+                            weight: 3
+                        });
+                        layer.options.isSelected = true;
+                        selectedCount++;
+                    }
+                });
+                
+                this.showFeedback(`Filter applied: ${selectedCount} ZIP codes selected`);
+                this.updateSummary();
+            }
+
+            searchZip() {
+                const searchTerm = document.getElementById('zipSearch').value.trim();
+                if (!searchTerm) {
+                    this.showFeedback('Please enter a ZIP code to search', 'warning');
+                    return;
+                }
+                
+                const layer = this.layersByZip.get(searchTerm);
+                if (layer) {
+                    this.map.fitBounds(layer.getBounds(), { maxZoom: 12 });
+                    
+                    this.selectedZips.add(searchTerm);
+                    layer.setStyle({
+                        fillColor: '#ff6b35',
+                        fillOpacity: 0.8,
+                        color: '#ff6b35',
+                        weight: 3
+                    });
+                    layer.options.isSelected = true;
+                    
+                    this.updateSummary();
+                    this.showFeedback(`Found and selected ZIP ${searchTerm}`);
+                } else {
+                    this.showFeedback(`ZIP code ${searchTerm} not found`, 'error');
+                }
+                
+                document.getElementById('zipSearch').value = '';
+            }
+
+            exportData(format) {
+                const selectedFeatures = this.allData.features.filter(feature => 
+                    this.selectedZips.has(this.getZipCode(feature))
+                );
+                
+                const stats = this.calculateCategorizedStats();
+                
+                if (format === 'csv') {
+                    this.exportCSV(selectedFeatures, stats);
+                } else if (format === 'json') {
+                    this.exportJSON(selectedFeatures, stats);
+                }
+            }
+
+            exportCSV(features, stats) {
+                let csv = 'ZIP_Code,';
+                if (features.length > 0) {
+                    csv += Object.keys(features[0].properties).join(',') + '\n';
+                    
+                    features.forEach(feature => {
+                        const zipCode = this.getZipCode(feature);
+                        csv += zipCode + ',';
+                        csv += Object.values(feature.properties).map(val => 
+                            typeof val === 'string' && val.includes(',') ? `"${val}"` : val
+                        ).join(',') + '\n';
+                    });
+                }
+                
+                // Add summary statistics by category
+                csv += '\n\nRace Demographics\n';
+                csv += 'Race,Count\n';
+                Object.entries(stats.race).forEach(([key, value]) => {
+                    csv += `"${key}",${value}\n`;
+                });
+                
+                csv += '\n\nGrade Enrollment\n';
+                csv += 'Grade,Enrollment\n';
+                Object.entries(stats.grades).forEach(([key, value]) => {
+                    csv += `"${key}",${value}\n`;
+                });
+                
+                csv += '\n\nDemographics\n';
+                csv += 'Metric,Value\n';
+                Object.entries(stats.demographics).forEach(([key, value]) => {
+                    csv += `"${key}",${value}\n`;
+                });
+                
+                csv += '\n\nSchool Statistics\n';
+                csv += 'Metric,Value\n';
+                Object.entries(stats.school).forEach(([key, value]) => {
+                    csv += `"${key}",${value}\n`;
+                });
+                
+                this.downloadFile(csv, `zip_analysis_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+                this.showFeedback('CSV exported successfully!');
+            }
+
+            exportJSON(features, stats) {
+                const exportData = {
+                    summary_statistics: {
+                        race_demographics: stats.race,
+                        grade_enrollment: stats.grades,
+                        demographics: stats.demographics,
+                        school_statistics: stats.school
+                    },
+                    selected_count: features.length,
+                    export_date: new Date().toISOString(),
+                    selected_zip_codes: Array.from(this.selectedZips),
+                    selected_features: features.map(feature => ({
+                        zip_code: this.getZipCode(feature),
+                        properties: feature.properties,
+                        geometry: feature.geometry
+                    }))
+                };
+                
+                this.downloadFile(
+                    JSON.stringify(exportData, null, 2), 
+                    `zip_analysis_${new Date().toISOString().split('T')[0]}.json`, 
+                    'application/json'
+                );
+                this.showFeedback('JSON exported successfully!');
+            }
+
+            downloadFile(content, filename, contentType) {
+                const blob = new Blob([content], { type: contentType });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ZipCodeDashboard();
+        });
+    </script>
+</body>
+</html>
